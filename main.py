@@ -3,21 +3,25 @@ import webbrowser
 import pyttsx3
 import time
 
-import pyttsx3
-engine = pyttsx3.init()
+# ✅ Initialize once and reuse
 
 
 def speak(text):
-    print(f"Jarvis says: {text}")  # Debug
-    time.sleep(0.5)  # Short delay before speaking
-    engine.say(text)
-    engine.runAndWait()
-
+    engine = pyttsx3.init(driverName='sapi5')
+    engine.setProperty('rate', 170)
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', voices[0].id)
+    try:
+        print(f"Jarvis says: {text}")
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print("Speech error:", e)
 
 def processCommand(c):
-    c = c.lower().strip()  # Normalize input
-    print(f"Normalized command: '{c}'")  # Debugging
-    
+    c = c.lower().strip()
+    print(f"Normalized command: '{c}'")
+
     if "open google" in c:
         speak("Opening Google")
         webbrowser.open_new_tab("https://www.google.com")
@@ -25,7 +29,7 @@ def processCommand(c):
     elif "open youtube" in c:
         speak("Opening YouTube")
         try:
-            chrome = webbrowser.get(using='windows-default')  # optional
+            chrome = webbrowser.get(using='windows-default')
             chrome.open_new_tab("https://www.youtube.com")
         except Exception as e:
             speak("Sorry, I couldn't open YouTube.")
@@ -39,10 +43,9 @@ def processCommand(c):
         speak("Sorry, I didn't understand that command. Please try again.")
         print(f"Unrecognized command: {c}")
 
-
 if __name__ == "__main__":
-    time.sleep(2)  # Initial delay for better performance
     speak("Hello Sir, I am Jarvis, your personal assistant.")
+    
 
     r = sr.Recognizer()
 
@@ -60,6 +63,7 @@ if __name__ == "__main__":
                 while True:
                     try:
                         with sr.Microphone() as source:
+                            r.adjust_for_ambient_noise(source, duration=0.5)
                             print("Jarvis Active...")
                             audio = r.listen(source, timeout=5, phrase_time_limit=5)
                             command = r.recognize_google(audio)
@@ -72,6 +76,7 @@ if __name__ == "__main__":
                         break
                     except sr.UnknownValueError:
                         print("Couldn’t understand command.")
+                        speak("Sorry, I didn't catch that.")
                     except Exception as e:
                         print("Error in command loop:", e)
                         break
@@ -79,6 +84,6 @@ if __name__ == "__main__":
         except sr.WaitTimeoutError:
             print("No speech detected. Restarting...")
         except sr.UnknownValueError:
-            print("Sorry, I didn't catch that.")            
+            print("Sorry, I didn't catch that.")
         except Exception as e:
             print("Error:", e)
