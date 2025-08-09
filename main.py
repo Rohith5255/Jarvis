@@ -1,10 +1,12 @@
 import speech_recognition as sr
 import webbrowser
 import pyttsx3
+import sys
+import requests
 import time
+import os
 
-# ✅ Initialize once and reuse
-
+API_KEY = '905f2fc535322f13ea4629ab678d55b9'
 
 def speak(text):
     engine = pyttsx3.init(driverName='sapi5')
@@ -28,25 +30,51 @@ def processCommand(c):
 
     elif "open youtube" in c:
         speak("Opening YouTube")
+        webbrowser.open_new_tab("https://www.youtube.com")
+
+    elif "open spotify" in c:
+        speak("Opening Spotify")
         try:
-            chrome = webbrowser.get(using='windows-default')
-            chrome.open_new_tab("https://www.youtube.com")
+            os.system("start spotify:")
         except Exception as e:
-            speak("Sorry, I couldn't open YouTube.")
-            print("Error opening YouTube:", e)
+            speak("Sorry, I couldn't open Spotify. Please check if it's installed.")
 
     elif "open linkedin" in c:
         speak("Opening LinkedIn")
         webbrowser.open_new_tab("https://www.linkedin.com")
 
+    elif "weather" in c:
+        speak("Please provide the location details in the console.")
+        country = input("Country (2-letter code): ").strip()
+        state = input("State (optional): ").strip()
+        city = input("City: ").strip()
+        speak("Fetching weather information...")
+        weather_response = fetch_weather(country, state, city, API_KEY)
+        speak(weather_response)
+        print("Chatbot:", weather_response)
+
+    elif c in ["exit", "quit", "stop"]:
+        speak("Goodbye Sir. Closing the program.")
+        sys.exit()
+
     else:
-        speak("Sorry, I didn't understand that command. Please try again.")
-        print(f"Unrecognized command: {c}")
+        speak("Sorry, I didn't understand that command.")
+
+def fetch_weather(country, state, city, api_key):
+    location = f"{city},{state},{country}" if state else f"{city},{country}"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        weather = data['weather'][0]['description']
+        temp = data['main']['temp']
+        feels_like = data['main']['feels_like']
+        return f"Weather in {city}, {state}, {country}: {weather.capitalize()}, Temp: {temp}°C, Feels like: {feels_like}°C."
+    else:
+        return f"Sorry, I couldn't retrieve the weather for {city}, {state}, {country}. Please check the city/state/country names."
 
 if __name__ == "__main__":
     speak("Hello Sir, I am Jarvis, your personal assistant.")
-    
-
     r = sr.Recognizer()
 
     while True:
@@ -68,6 +96,11 @@ if __name__ == "__main__":
                             audio = r.listen(source, timeout=5, phrase_time_limit=5)
                             command = r.recognize_google(audio)
                             print(f"Command: {command}")
+
+                            if command.lower().strip() in ["exit", "quit", "stop"]:
+                                speak("Goodbye Sir. Closing the program.")
+                                sys.exit()
+
                             speak("Processing your command...")
                             processCommand(command)
 
